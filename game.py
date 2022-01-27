@@ -1,50 +1,40 @@
 from random import randint
+from guess import CharGuess, Guess
+import argparse
 
-def readLines():
-    lines = []
+parser = argparse.ArgumentParser()
+parser.add_argument('--tries', default=5, type=int, dest='tries', help="The number of tries that the user has")
+parser.add_argument('--debug', default=False, dest='debug', action='store_true', help="Run the program in debug mode")
+options = parser.parse_args()
+
+def readLine(choice):
+    """ Reads the choice-th line from the file as the word for the game and returns the word stripped of '\n' """
+    word = ""
     with open('data/words.txt', 'r') as file:
-        lines = file.readlines()
-    return lines
-
-def isCorrect(word, guess):
-    tGuess = ['_', '_', '_', '_', '_']
-
-    guess = guess.upper()    
-
-    if word == guess.strip():
-        return word, True
-    
-    for idx, chr in enumerate(word):
-        if chr == guess[idx]:
-            tGuess[idx] = chr
-    
-    return tGuess, False
+        file.seek(6 * choice)
+        word = file.readline()
+    return word.strip()
 
 def game(word):
-    guess = ['_', '_', '_', '_', '_']
-    gCount = 0
+    if options.debug:
+        print("Word is: ", word)
     
-
+    guess = Guess("_____")
     done = False
+    tries = 0
+
     while not done:
-        print(" ".join(guess))
-        userGuess = input()
-
-        guess, done = isCorrect(word, userGuess)
-        gCount += 1
-
-        done = done or gCount == 5
+        userInput = input("Your Guess: ")
+        guess = Guess(userInput)
+        tries += 1
+        done = guess.judge(word) or tries > options.tries
+        print(guess)
     
-    print("Word was ", word)
-
-
+    print("Word was: ", word)
 
 def main():
-    words = readLines()
-
-    word_choice = words[randint(0, len(words))].strip()
-
-    game(word_choice)
+    word = readLine(randint(0, 12478))
+    game(word)
 
 if __name__ == "__main__":
     main()
