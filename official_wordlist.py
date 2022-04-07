@@ -14,3 +14,8 @@ if __name__ == "__main__":
         writer = csv.writer(f)
         writer.writerow(fields)
         writer.writerows(words)
+    
+    words = [ word_split[1] for word_split in words ]
+    
+    with open("data/official.txt", 'w') as f:
+        f.writelines("\n".join(words))
