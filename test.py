@@ -47,6 +47,53 @@ def print_feedback(feedback : list, word : str) -> None:
         str += f"{colored(ch, color_code)}"
     print(str + "\n")
 
+def encode_feedback(feedback : list, word : str, encoded : list = None) -> list:
+    if not encoded:
+        encoded = [[0 if _ else 1 for _ in range(12) ] for __ in range(26)]
+    
+    for i, k in enumerate(word):
+        row_idx = ord(k) - ord('a')
+        if feedback[i] == 'yellow':
+            col_idx = 7 + i
+        elif feedback[i] == 'green':
+            col_idx = 2 + i
+        elif feedback[i] == 'red':
+            col_idx = 1
+        else:
+            raise ValueError
+        encoded[row_idx][col_idx] = 1
+        encoded[row_idx][0] = 0
+    return encoded
+
+def print_encoding(encoding : list) -> None:
+    for i, l in enumerate(encoding):
+        print(f"{chr(i + ord('a'))} => {l}")
+
+def test_encoding():
+    # guess - 1, present - 1 case
+    guess =   "brash"
+    present = "ctaju"
+    fb = feedback(guess, present)
+    print(present)
+    print_feedback(fb, guess)
+    en = encode_feedback(fb, guess)
+    print_encoding(en)
+
+    guess = "ctalk"
+    fb = feedback(guess, present)
+    print(present)
+    print_feedback(fb, guess)
+    en = encode_feedback(fb, guess, en)
+    print_encoding(en)
+
+    guess =   "braha"
+    present = "ctaau"
+    fb = feedback(guess, present)
+    print(present)
+    print_feedback(fb, guess)
+    en = encode_feedback(fb, guess, en)
+    print_encoding(en)
+
 def test_feedback():
     # guess - 1, present - 1 case
     guess =   "brash"
@@ -120,4 +167,5 @@ def test_feedback():
     print_feedback(fb, guess)
 
 if __name__ == "__main__":
-    test_feedback()
+    # test_feedback()
+    test_encoding()
