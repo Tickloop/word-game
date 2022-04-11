@@ -1,2 +1,6 @@
 __pycache__
 data/games.txt
+100epoch_loss.png
+data/100epoch_naive
+data/dummy.txt
+data/interaction_history.json
