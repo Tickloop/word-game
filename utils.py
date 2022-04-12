@@ -1,4 +1,5 @@
 import torch
+from dataset import WordleDataset
 
 def get_default_features():
     one_through_12 = torch.zeros((26, 11)).float()
@@ -70,3 +71,21 @@ def get_wordlist(filename):
     words = [word.strip() for word in words]
     words = [word.lower() for word in words]
     return words
+
+def get_dataset(root_dir):
+    dataset = WordleDataset(root_dir)
+    return dataset
+
+def get_split_dataset(dataset, splits):
+    total_count = len(dataset)
+    splits = [int(total_count * ratio) for ratio in splits]
+    splits[-1] = total_count - sum(splits)
+
+    train_set, val_set, test_set = torch.utils.data.random_split(dataset, splits, generator=torch.Generator().manual_seed(42))
+    datasets = {
+        'train': train_set,
+        'test': test_set,
+        'val': val_set,
+    }
+
+    return datasets
