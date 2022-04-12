@@ -60,9 +60,8 @@ if __name__ == "__main__":
     datasets = get_split_dataset(dataset, splits)
     
     b1 = BaseModel(in_features=26 * 12)
-    b1_loss, interaction_history = train(b1, datasets, max_epochs=15, eta=0.005)
+    b1_loss, interaction_history = train(b1, datasets, max_epochs=200, eta=0.005)
 
-    feat = get_default_features()
-    out = b1(feat)
-    word = get_word(out)
-    print(word)
+    save_model(b1, "200epoch_naive_train")
+    save_history(interaction_history, "interaction_history_3.json")
+    save_loss(b1_loss, "200epoch_loss.npy")

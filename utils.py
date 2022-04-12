@@ -1,5 +1,7 @@
 import torch
+import json
 from dataset import WordleDataset
+import numpy as np
 
 def get_default_features():
     one_through_12 = torch.zeros((26, 11)).float()
@@ -89,3 +91,14 @@ def get_split_dataset(dataset, splits):
     }
 
     return datasets
+
+def save_model(model, model_name):
+    torch.save(model, f"models/{model_name}")
+
+def save_history(history, file_name):
+    json_file = json.dumps(history)
+    with open(f"interactions/{file_name}", "w") as f:
+        f.write(json_file)
+
+def save_loss(loss, file_name):
+   np.save(f"plots/{file_name}", loss)

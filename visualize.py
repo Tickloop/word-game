@@ -104,10 +104,10 @@ def print_model_dataset_accuracy(model_name):
     print(f"Test accuracy: {test_acc}%")
 
 if __name__ == "__main__":
-    data = load_json("data/interaction_history_2.json")
+    data = load_json("interactions/interaction_history_3.json")
 
     # first we start with finding raw accuracy scores of 0th, 9th, 49th, and 99th epoch
-    epochs = list(map(str, [i for i in range(15)]))
+    epochs = list(map(str, [i for i in range(200)]))
 
     for epoch in epochs:
         acc = accuracy_on_output(data[epoch])
@@ -119,4 +119,4 @@ if __name__ == "__main__":
     # this prints the evolution of the interaction of a particular word through different epochs
     # print_word_over_epochs(data, "flume")
     
-    print_model_dataset_accuracy("models/15epoch_naive_train")
+    print_model_dataset_accuracy("models/200epoch_naive_train")
