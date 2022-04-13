@@ -47,9 +47,9 @@ def train(model, datasets, max_epochs, eta):
                 if guessed_word == correct_word:
                     break
             
-            losses[epoch] += word_losses / (1 + attempt)
+            losses[epoch] += word_losses
         
-        losses[epoch] /= len(datasets['train'])
+        # losses[epoch] /= len(datasets['train'])
         print(f"Epoch {epoch} / {max_epochs}, loss => {losses[epoch]}")
     
     return losses, interactions
@@ -58,10 +58,10 @@ if __name__ == "__main__":
     splits = [0.8, 0.05, 0]
     dataset = get_dataset("data/official.txt")
     datasets = get_split_dataset(dataset, splits)
-    
-    b1 = BaseModel(in_features=26 * 12)
-    b1_loss, interaction_history = train(b1, datasets, max_epochs=200, eta=0.005)
 
-    save_model(b1, "200epoch_naive_train")
-    save_history(interaction_history, "interaction_history_3.json")
-    save_loss(b1_loss, "200epoch_loss.npy")
+    b1 = BaseModel(in_features=26 * 12)
+    b1_loss, interaction_history = train(b1, datasets, max_epochs=15, eta=0.001)
+
+    save_model(b1, "15epoch_bigger_train")
+    save_history(interaction_history, "interaction_history_4.json")
+    save_loss(b1_loss, "15epoch_bigger_train.npy")

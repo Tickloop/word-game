@@ -48,13 +48,14 @@ def print_word_over_epochs(data, word):
 
 def accuracy_on_output(data):
     # data should be the outputs from one epoch
-    keys = data.keys()
+    # words = data.keys()
     acc = 0.
-    count = 0
-    for k in keys:
-        guesses = [turn_val['guessed_word'] for turn_key, turn_val in data[k].items()]
-        if k in guesses:
-            acc += 1
+    count = 0.
+    for correct_word, turns in data.items():
+        for turn in turns.values():
+            if turn['guessed_word'] == correct_word:
+                acc += 1
+                break
         count += 1
     return round(100. * acc / count, 3)
 
@@ -64,7 +65,7 @@ def accuracy_on_dataset(model_path, wordlist_path, dataset_name):
     datasets = get_split_dataset(dataset, splits)
     
     model = torch.load(model_path)
-    acc = 0.
+    acc, count = 0., 0.
     results = {word : {} for word, label in datasets[dataset_name]}
 
 
@@ -86,37 +87,56 @@ def accuracy_on_dataset(model_path, wordlist_path, dataset_name):
             if guessed_word == correct_word:
                 acc += 1
                 break
+        
+        count += 1
 
-    acc = round(100. * acc / len(datasets[dataset_name]), 3)
+    acc = round(100. * acc / count, 3)
     return results, acc
 
+def get_in_vocab(results, words):
+    acc, count = 0., 0.
+    for turns in results.values():
+        for turn in turns.values():
+            guessed_word = turn['guessed_word']
+            if guessed_word in words:
+                acc += 1
+            count += 1
+    return round(100 * acc / count, 4)        
+
 def print_model_dataset_accuracy(model_name):
-    print("validation accuracy on official list:")
-    val_results, val_acc = accuracy_on_dataset(model_name, "data/official.txt", "val")
-    print_epoch_turns(val_results)
+    results, acc, in_vocab = {}, {}, {}
 
-    print(f"validation accuracy: {val_acc}%")
+    results['train'], acc['train'] = accuracy_on_dataset(model_name, "data/official.txt", "train")
+    results['val'], acc['val'] = accuracy_on_dataset(model_name, "data/official.txt", "val")
+    results['test'], acc['test'] = accuracy_on_dataset(model_name, "data/official.txt", "test")
 
-    print("Test accuracy on official list:")
-    test_results, test_acc = accuracy_on_dataset(model_name, "data/official.txt", "test")
-    print_epoch_turns(test_results)
+    print(f"Train accuracy: {acc['train']}%")
+    print(f"validation accuracy: {acc['val']}%")
+    print(f"Test accuracy: {acc['test']}%")
 
-    print(f"Test accuracy: {test_acc}%")
+    word_set = get_wordset("data/official.txt")
+    in_vocab['train'] = get_in_vocab(results['train'], word_set)
+    in_vocab['val'] = get_in_vocab(results['val'], word_set)
+    in_vocab['test'] = get_in_vocab(results['test'], word_set)
+
+    print(f"Words guessed in vocab(train): {in_vocab['train']}%")
+    print(f"Words guessed in vocab(val): {in_vocab['val']}%")
+    print(f"Words guessed in vocab(test): {in_vocab['test']}%")
 
 if __name__ == "__main__":
-    data = load_json("interactions/interaction_history_3.json")
+    data = load_json("interactions/interaction_history_4.json")
 
     # first we start with finding raw accuracy scores of 0th, 9th, 49th, and 99th epoch
-    epochs = list(map(str, [i for i in range(200)]))
+    epochs = list(map(str, [i for i in range(15)]))
 
     for epoch in epochs:
         acc = accuracy_on_output(data[epoch])
         print(f"Epoch {epoch} => accuracy = {acc}%")
     
     # this prints the interaction for the 99th epoch
-    # print_epoch_turns(data['99'])
+    # print_epoch_turns(data['14'])
 
     # this prints the evolution of the interaction of a particular word through different epochs
     # print_word_over_epochs(data, "flume")
     
-    print_model_dataset_accuracy("models/200epoch_naive_train")
+    print_model_dataset_accuracy("models/15epoch_bigger_train")

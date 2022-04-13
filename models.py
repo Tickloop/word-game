@@ -10,6 +10,8 @@ class BaseModel(nn.Module):
             nn.ReLU(),
             nn.Linear(in_features=512, out_features=512),
             nn.ReLU(),
+            nn.Linear(in_features=512, out_features=512),
+            nn.ReLU(),
         )
 
         self.output_char_layers = [
