@@ -2,10 +2,16 @@ from torch import empty, long
 from torch.utils.data import Dataset
 
 class WordleDataset(Dataset):
+    """
+        A dataset that contains the words from the chosen word list (official/unofficial.txt) under data/ subdirectory.
+
+        Can be iterated through by simply calling `for words, labels in dataset:`
+    """
     def __init__(self, root_dir):
-        
-        """ To read all the lines from the given file, strip the enidng '\n' and lower case all the characters """
         def get_wordlist(filename):
+            """ 
+                To read all the lines from the given file, strip the enidng '\n' and lower case all the characters 
+            """
             words = []
             with open(filename, 'r') as f:
                 words = f.readlines()

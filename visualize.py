@@ -4,14 +4,26 @@ import torch
 from utils import *
 
 # load the data from interaction_history.json
-def load_json(json_file):
+def load_json(json_file : str) -> dict:
     with open(json_file, "r") as f:
         data = json.load(f)
     return data
 
-def get_colored_word(word, feedback):
+def get_colored_word(guessed_word : str, feedback : list) -> str:
+    """
+        The word will have special characters inserted using the colored function,
+        from termcolor.
+        
+        Arguments:
+
+        `feedback`: should be a list the same size(5) as `guessed_word` containing entries from 
+        {-1, 0, 1}.
+
+        `guessed_word`: is a string of 5 characters, ideally the output from your model converted to a string.
+        The output from the model is converted to string using get_word() function
+    """
     colored_word = ""
-    for fb, ch in zip(feedback, word):
+    for fb, ch in zip(feedback, guessed_word):
         if fb == 1:
             color_code = 'green'
         elif fb == 0:
@@ -23,9 +35,26 @@ def get_colored_word(word, feedback):
         colored_word += colored(ch, color_code)
     return colored_word
 
-def get_colored_turn(turn):
+def get_colored_turn(turns : dict) -> str:
+    """
+        A turn is an attempted guess and the corresponding feedback recieved.
+        The coloring is done using get_colored_word() function.
+        This function is used to make it easier to find patterns in the AI's learning.
+
+        Arguments:
+        `turns`: A dictionary containing upto 6 attempts made by the model to predict the word.
+        Each attempt should have a value for 'feedback' and 'guessed_word' key.
+
+        Example turn:
+        '0' : {
+            'feedback': [1, 1, 0, -1, -1],
+            'guessed_word': hello
+        }
+
+        turns is a dict of such turns
+    """
     colored_turn = []
-    for turn_val in turn.values():
+    for turn_val in turns.values():
         feedback = turn_val['feedback']
         guessed_word = turn_val['guessed_word']
 
@@ -33,25 +62,78 @@ def get_colored_turn(turn):
         colored_turn.append(colored_word)
     return " => ".join(colored_turn)
 
-def print_epoch_turns(data):
-    # data is the output from one epoch
-    for correct_word, turns in data.items():
+def print_epoch_turns(one_epoch_interaction : dict) -> None:
+    """
+        This function is used to print the interaction history from one epoch of the model.
+        One epoch contains all interactions of the model over the entire training dataset.
+        By printing these interactions, we can see how the model is doing over the dataset.
+
+        Arguments:
+        `one_epoch_interaction`: A dictionary containing the interaction history of the model
+        over the entire training dataset. For each word there should be at least 1 attempt,
+        with each attempt being a valid turn. See get_colored_turn() for example of valid turns.
+
+        Example one_epoch_interaction:
+        {
+            'hello': {
+                '0': {
+                    'feedback': [1, 1, 0, -1, -1],
+                    'guessed_word': heoyy,
+                },
+                '1': {
+                    'feedback': [1, 1, 1, 1, 1],
+                    'guessed_word': hello,
+                }
+            },
+            'goose': {
+                '0': {
+                    'feedback': [1, 1, 0, -1, -1],
+                    'guessed_word': goecx,
+                },
+                '1': {
+                    'feedback': [1, 1, 1, 0, -1],
+                    'guessed_word': gooex,
+                },
+                '2': {
+                    'feedback': [1, 1, 1, 1, 1],
+                    'guessed_word': goose,
+                }
+            }
+        }
+    """
+    for correct_word, turns in one_epoch_interaction.items():
         colored_turn = get_colored_turn(turns)
         print(f"{correct_word} : {colored_turn}")
 
-def print_word_over_epochs(data, word):
-    # data is the entire output
+def print_word_over_epochs(interaction_history : dict, correct_word : str) -> None:
+    """
+        Print the evolution of the AI's ability to predict the sequence of guesses for a given word.
+        Useful to see this relation evolve an check for over training.
+
+        Arguments:
+        `interaction_history`: A dictonary that is the output of running the train() function for a model on the dataset.
+        Usually these files are saved in the interactions sub-directory. An interacion_history is a dict with epoch number
+        as keys and the interactions over the entire dataset is the value for the keys.
+
+        `correct_word`: The word that we are tracking through different epochs.
+    """
     for epoch in range(100):
-        turns = data[str(epoch)][word]
+        turns = interaction_history[str(epoch)][correct_word]
         colored_turn = get_colored_turn(turns)
         print(colored_turn)
 
-def accuracy_on_output(data):
-    # data should be the outputs from one epoch
-    # words = data.keys()
+def accuracy_on_output(one_epoch_interaction : dict) -> float:
+    """
+        Find the accuracy from the output. This data can be skewed as the model is learning between different
+        interactions. Thus, this is not a good measure of accuracy. A better measure is defined below and in 
+        metrics.py.
+
+        Arguments:
+        `one_epoch_ineraction`: Full definition is present in print_epoch_turns()
+    """
     acc = 0.
     count = 0.
-    for correct_word, turns in data.items():
+    for correct_word, turns in one_epoch_interaction.items():
         for turn in turns.values():
             if turn['guessed_word'] == correct_word:
                 acc += 1
@@ -59,7 +141,25 @@ def accuracy_on_output(data):
         count += 1
     return round(100. * acc / count, 3)
 
-def accuracy_on_dataset(model_path, wordlist_path, dataset_name):
+def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : str) -> tuple:
+    """
+        Given a model path, wordlist path, and the dataset name from {'train', 'test', 'val'},
+        finds the accuracy on the given dataset.
+
+        Arguments:
+        `model_path`: This needs to be the full path to the model. Usuallay models are stored in 
+        the models/ subdirectory.
+
+        `wordlist_path`: This need to be the full path to the word list. Usually the word list is
+        stored in data/ subdirectory.
+
+        `dataset_name`: The default split on the loaded wordlist will be [0.8, 0.05, 0.15] for 
+        {'train', 'val', 'test'}. The dataset_name specifies which dataset to use to find this accuracy.
+
+        Return:
+        `results`: A dict, storing the attempts that the model made for each word in the specified dataset.
+        `accuracy`: A float multiplied by 100 to give % of accuracy
+    """
     splits = [0.8, 0.05, 0]
     dataset = get_dataset(wordlist_path)
     datasets = get_split_dataset(dataset, splits)
@@ -93,17 +193,32 @@ def accuracy_on_dataset(model_path, wordlist_path, dataset_name):
     acc = round(100. * acc / count, 3)
     return results, acc
 
-def get_in_vocab(results, words):
+def get_in_vocab(interaction_results : dict, words_set : set) -> float:
+    """
+        Finds the percentage of words from the model's output that were in the given vocab (words).
+
+        Arguments:
+        `interaction_results`: The interacion history of the model.
+        `words_set`: A set of words that represents the vocabulary for which we are checking overlap
+    """
     acc, count = 0., 0.
-    for turns in results.values():
+    for turns in interaction_results.values():
         for turn in turns.values():
             guessed_word = turn['guessed_word']
-            if guessed_word in words:
+            if guessed_word in words_set:
                 acc += 1
             count += 1
     return round(100 * acc / count, 4)        
 
-def print_model_dataset_accuracy(model_name):
+def print_model_statistics(model_name : str) -> None:
+    """
+        This is used to quickly see the statistics like interaction history and accuracy on different
+        datasets for a given model. The usual split is [0.8, 0.05, 0.15] over the official list of 
+        words.
+
+        Arguments:
+        `model_name`: Needs to be the full path to the model file. Usually under models/ subdirectory.
+    """
     results, acc, in_vocab = {}, {}, {}
 
     results['train'], acc['train'] = accuracy_on_dataset(model_name, "data/official.txt", "train")
@@ -124,19 +239,4 @@ def print_model_dataset_accuracy(model_name):
     print(f"Words guessed in vocab(test): {in_vocab['test']}%")
 
 if __name__ == "__main__":
-    data = load_json("interactions/interaction_history_4.json")
-
-    # first we start with finding raw accuracy scores of 0th, 9th, 49th, and 99th epoch
-    epochs = list(map(str, [i for i in range(15)]))
-
-    for epoch in epochs:
-        acc = accuracy_on_output(data[epoch])
-        print(f"Epoch {epoch} => accuracy = {acc}%")
-    
-    # this prints the interaction for the 99th epoch
-    # print_epoch_turns(data['14'])
-
-    # this prints the evolution of the interaction of a particular word through different epochs
-    # print_word_over_epochs(data, "flume")
-    
-    print_model_dataset_accuracy("models/15epoch_bigger_train")
+    print_model_statistics("models/25epoch_bigger_train")
