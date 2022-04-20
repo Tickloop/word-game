@@ -208,3 +208,85 @@ def save_loss(loss : list, file_name : str):
         Save the loss, that is acutally an np.arry but I can't find the typing for that, in a npz file under the plots/ subdirectory.
     """
     np.save(f"plots/{file_name}", loss)
+
+def get_mask_tree(wordlist_path : str) -> dict:
+    """
+        Reads the words from the file at the path, and creates a word mask tree.
+        A mask tree specifies the masks for each possible part of the word.
+        This way we can find what are the possible next characters for any part of a word.
+
+        ex:
+        mask_tree[1] has all the masks from 'a' - 'z'
+        mask_tree[1]['a'] has the masks for 'a****' specifying what are the characters that can be 
+        at the second place.
+        
+        mask_tree[1]['art'] has the masks for 'art**' specifying what are the characters that can be
+        at the third place.
+        
+        Arguments:
+        `wordlist_path`: Needs to be the full path to the wordlist to use. Usually word lists are under data/ subdirectory.
+    """
+    words = get_wordlist(wordlist_path)
+
+    mask_tree = {
+        0: [0 for _ in range(26)],
+    }
+
+    for word in words:
+        idx = ord(word[0]) - ord('a')
+        mask_tree[0][idx] = 1
+
+    for word in words:
+        for pass_len in range(1, 5):
+            key = word[:pass_len]
+            idx = ord(word[pass_len]) - ord('a')
+
+            if pass_len not in mask_tree:
+                mask_tree[pass_len] = {}
+
+            if key not in mask_tree[pass_len]:
+                mask_tree[pass_len][key] = [0 for _ in range(26)]
+
+            mask_tree[pass_len][key][idx] = 1
+    
+    return mask_tree
+
+
+def get_word_beam_search(outputs : torch.Tensor, mask_tree : dict) -> str:
+    """
+        To convert the output of our model to a word that can be made sense of, we use this function.
+        Rather than taking the argmax independent of the underlying word distribution, we carry out a beam search to find the optimal 
+        word in our dictionary.
+
+        Arguments:
+        `outputs`: The output from the model. Should be of the shape [5, 26].
+        `mask_tree`: The mask tree to be used. This is created using the get_word_tree() function
+    """
+    # initialize
+    soft_outputs = torch.nn.functional.softmax(outputs, dim=1)
+    k = 3
+    mask = mask_tree[0]
+    mask = torch.tensor(mask)
+    mask = mask * soft_outputs[0]
+    values, indices = torch.topk(mask, k=k)
+    characters = [ chr(i + ord('a')) for i in indices ]
+    
+    for i, output in enumerate(soft_outputs[1:]):
+        new_output = torch.tensor([])
+        for j, c in enumerate(characters):
+            mask = mask_tree[i + 1][c]
+            mask = torch.tensor(mask)
+            mask = values[j] * mask
+            mask = mask * output
+            new_output = torch.hstack((new_output, mask))
+        
+        # update for new iterration
+        values, indices = torch.topk(new_output, k=k)
+        temp_char = [ch for ch in characters]
+        for i, idx in enumerate(indices):
+            old_ch = characters[torch.div(idx, 26, rounding_mode='trunc')]
+            new_ch =  old_ch + chr(idx % 26 + ord('a'))
+            temp_char[i] = new_ch
+        characters = temp_char
+    
+    return characters[0]

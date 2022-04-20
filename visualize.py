@@ -174,8 +174,8 @@ def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : st
 
         for attempt in range(6):
             output = model(features)
-
-            guessed_word = get_word(output)
+            mask_tree = get_mask_tree(wordlist_path)
+            guessed_word = get_word_beam_search(output, mask_tree)
             feedback = get_feedback(guessed_word, correct_word)
             features = get_updated_features(features, feedback, guessed_word)
             
@@ -238,5 +238,15 @@ def print_model_statistics(model_name : str) -> None:
     print(f"Words guessed in vocab(val): {in_vocab['val']}%")
     print(f"Words guessed in vocab(test): {in_vocab['test']}%")
 
+    # print_epoch_turns(results['test'])
+
 if __name__ == "__main__":
-    print_model_statistics("models/25epoch_bigger_train")
+    # print_model_statistics("models/15epoch_naive_train")
+    # print_model_statistics("models/100epoch_naive")
+    # print_model_statistics("models/200epoch_naive_train")
+
+    # print_model_statistics("models/15epoch_bigger_train")
+    # print_model_statistics("models/25epoch_bigger_train")
+    # print_model_statistics("models/25epoch_bigger_train_2")
+    print_model_statistics("models/25epoch_bigger_train_beam")
+    
