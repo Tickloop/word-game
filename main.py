@@ -54,24 +54,24 @@ def train(model, datasets, mask_tree, max_epochs, eta):
                 if guessed_word == correct_word:
                     break
 
-        val_acc[epoch], _ = accuracy(model, datasets['val'], mask_tree)
-        val_loss[epoch] = avg_loss(model, datasets['val'], mask_tree)
-        print(f"Epoch {epoch} / {max_epochs}, loss => {losses[epoch]}, val_acc => {val_acc[epoch]}, val_loss => {val_loss[epoch]}")
+        val_acc[epoch], _ = accuracy(model, datasets['train'], mask_tree)
+        # val_loss[epoch] = avg_loss(model, datasets['val'], mask_tree)
+        print(f"Epoch {epoch} / {max_epochs}, loss => {losses[epoch]}, full_acc => {val_acc[epoch]}")
 
         if val_acc[epoch] > max_val_acc:
-            save_model(b1, "1epoch_bigger_train_beam")
+            save_model(model, "100epoch_bigger_train_beam_4")
             max_val_acc = val_acc[epoch]
     
     return losses, interactions
 
 if __name__ == "__main__":
-    splits = [0.8, 0.05, 0]
+    splits = [1.0, 0.0, 0]
     mask_tree = get_mask_tree("data/official.txt")
     dataset = get_dataset("data/official.txt")
     datasets = get_split_dataset(dataset, splits)
 
     b1 = BaseModel(in_features=26 * 12)
-    b1_loss, interaction_history = train(b1, datasets, mask_tree, max_epochs=1, eta=0.0001)
+    b1_loss, interaction_history = train(b1, datasets, mask_tree, max_epochs=100, eta=0.00005)
 
-    # save_history(interaction_history, "interaction_history_.json")
-    # save_loss(b1_loss, "25epoch_bigger_train_beam.npy")
+    save_history(interaction_history, "interaction_history_17.json")
+    save_loss(b1_loss, "100epoch_bigger_train_beam_4.npy")

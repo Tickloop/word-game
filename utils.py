@@ -26,9 +26,9 @@ def get_default_features() -> torch.Tensor:
 
         These are all binary features.
     """
-    one_through_12 = torch.zeros((26, 11)).float()
+    one_through_11 = torch.zeros((26, 11)).float()
     zero = torch.ones((26, 1)).float()
-    return torch.hstack((zero, one_through_12))
+    return torch.hstack((zero, one_through_11))
 
 def get_label_tensor(word : str) -> torch.Tensor:
     """

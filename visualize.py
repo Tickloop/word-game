@@ -2,6 +2,7 @@ from termcolor import colored
 import json
 import torch
 from utils import *
+import matplotlib.pyplot as plt
 
 # load the data from interaction_history.json
 def load_json(json_file : str) -> dict:
@@ -160,21 +161,24 @@ def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : st
         `results`: A dict, storing the attempts that the model made for each word in the specified dataset.
         `accuracy`: A float multiplied by 100 to give % of accuracy
     """
-    splits = [0.8, 0.05, 0]
+    splits = [1.0, 0, 0]
     dataset = get_dataset(wordlist_path)
     datasets = get_split_dataset(dataset, splits)
+    mask_tree = get_mask_tree(wordlist_path)
     
     model = torch.load(model_path)
     acc, count = 0., 0.
     results = {word : {} for word, label in datasets[dataset_name]}
 
-
+    i = 0
+    N = len(datasets[dataset_name])
     for correct_word, label in datasets[dataset_name]:
+        i += 1
+        print(f"word: {correct_word} {i}/{N}", end='\r')
         features = get_default_features()
 
         for attempt in range(6):
             output = model(features)
-            mask_tree = get_mask_tree(wordlist_path)
             guessed_word = get_word_beam_search(output, mask_tree)
             feedback = get_feedback(guessed_word, correct_word)
             features = get_updated_features(features, feedback, guessed_word)
@@ -190,7 +194,7 @@ def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : st
         
         count += 1
 
-    acc = round(100. * acc / count, 3)
+    acc = round(100. * acc / count, 3) if count else 0
     return results, acc
 
 def get_in_vocab(interaction_results : dict, words_set : set) -> float:
@@ -208,7 +212,47 @@ def get_in_vocab(interaction_results : dict, words_set : set) -> float:
             if guessed_word in words_set:
                 acc += 1
             count += 1
-    return round(100 * acc / count, 4)        
+    return round(100 * acc / count, 4) if count else 0        
+
+def show_guess_distribution(results : dict):
+    """
+        Finds the number of attempts taken to guess each word.
+        Then creates a distriubtion to display the number of guesses taken
+
+        Parameters:
+        `results`: A dictionary which has the attempt history for each word.
+        This comes as an output from accuracy_on_dataset()
+    """
+    guess_count = { i : 0 for i in range(1, 8) }
+
+    for correct_word, attempts in results.items():
+        if len(attempts) == 6:
+            if correct_word == attempts[5]['guessed_word']:
+                count_attempts = 6
+            else:
+                count_attempts = 7
+        else:
+            count_attempts = len(attempts)
+        guess_count[count_attempts] += 1
+    
+    _sum = 0.
+    total_count = 0.
+    for guess, count in guess_count.items():
+        if guess == 7:
+            continue
+        _sum += count * guess
+        total_count += count
+    
+    avg = round(_sum / total_count, 3)   
+    print(guess_count)
+
+    labels = [str(i) for i in guess_count.keys()]
+    labels[-1] = "Could Not Guess"
+    bars = list(guess_count.values())
+    plt.bar(labels, bars, color="green")
+    plt.title(f"Average Score : {avg}")
+    plt.show()
+    plt.close()
 
 def print_model_statistics(model_name : str) -> None:
     """
@@ -219,6 +263,7 @@ def print_model_statistics(model_name : str) -> None:
         Arguments:
         `model_name`: Needs to be the full path to the model file. Usually under models/ subdirectory.
     """
+    print(model_name)
     results, acc, in_vocab = {}, {}, {}
 
     results['train'], acc['train'] = accuracy_on_dataset(model_name, "data/official.txt", "train")
@@ -237,8 +282,9 @@ def print_model_statistics(model_name : str) -> None:
     print(f"Words guessed in vocab(train): {in_vocab['train']}%")
     print(f"Words guessed in vocab(val): {in_vocab['val']}%")
     print(f"Words guessed in vocab(test): {in_vocab['test']}%")
-
-    # print_epoch_turns(results['test'])
+    
+    show_guess_distribution(results['train'])
+    print("")
 
 if __name__ == "__main__":
     # print_model_statistics("models/15epoch_naive_train")
@@ -248,5 +294,17 @@ if __name__ == "__main__":
     # print_model_statistics("models/15epoch_bigger_train")
     # print_model_statistics("models/25epoch_bigger_train")
     # print_model_statistics("models/25epoch_bigger_train_2")
-    print_model_statistics("models/25epoch_bigger_train_beam")
+    # print_model_statistics("models/25epoch_bigger_train_3")
+
+    # print_model_statistics("models/25epoch_bigger_train_beam")
+    # print_model_statistics("models/25epoch_bigger_train_beam_2")
+    # print_model_statistics("models/25epoch_bigger_train_beam_3")
+
+    # print_model_statistics("models/100epoch_bigger_train_beam")
+    # print_model_statistics("models/100epoch_bigger_train_beam_2")
+    # print_model_statistics("models/100epoch_bigger_train_beam_3")
+    print_model_statistics("models/100epoch_bigger_train_beam_4")
+    
+    # print_model_statistics("models/25epoch_biggest_train_beam")
+    # print_model_statistics("models/25epoch_biggest_train_beam_2")
     
