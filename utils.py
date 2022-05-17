@@ -252,7 +252,7 @@ def get_mask_tree(wordlist_path : str) -> dict:
     return mask_tree
 
 
-def get_word_beam_search(outputs : torch.Tensor, mask_tree : dict) -> str:
+def get_word_beam_search(outputs : torch.Tensor, mask_tree : dict, k : int = 3) -> str:
     """
         To convert the output of our model to a word that can be made sense of, we use this function.
         Rather than taking the argmax independent of the underlying word distribution, we carry out a beam search to find the optimal 
@@ -264,7 +264,6 @@ def get_word_beam_search(outputs : torch.Tensor, mask_tree : dict) -> str:
     """
     # initialize
     soft_outputs = torch.nn.functional.softmax(outputs, dim=1)
-    k = 3
     mask = mask_tree[0]
     mask = torch.tensor(mask)
     mask = mask * soft_outputs[0]

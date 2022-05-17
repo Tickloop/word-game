@@ -24,7 +24,6 @@ class BaseModel(nn.Module):
 
         self.flatten = nn.Flatten(start_dim=0)
         self.activation = nn.ReLU()
-        self.softmax = nn.Softmax(dim=0)
 
     def forward(self, x):
         output = self.flatten(x)
@@ -33,7 +32,6 @@ class BaseModel(nn.Module):
         outputs = torch.empty((5, 26))
         for i, layer in enumerate(self.output_char_layers):
             outputs[i] = layer(output)
-            # outputs[i] = self.softmax(outputs[i])
         
         return outputs
     

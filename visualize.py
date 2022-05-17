@@ -142,7 +142,7 @@ def accuracy_on_output(one_epoch_interaction : dict) -> float:
         count += 1
     return round(100. * acc / count, 3)
 
-def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : str) -> tuple:
+def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : str, k : int = 3) -> tuple:
     """
         Given a model path, wordlist path, and the dataset name from {'train', 'test', 'val'},
         finds the accuracy on the given dataset.
@@ -157,16 +157,19 @@ def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : st
         `dataset_name`: The default split on the loaded wordlist will be [0.8, 0.05, 0.15] for 
         {'train', 'val', 'test'}. The dataset_name specifies which dataset to use to find this accuracy.
 
+        `k`: The number of words to track in beam search. Increasing this number makes search slower.
+
         Return:
         `results`: A dict, storing the attempts that the model made for each word in the specified dataset.
         `accuracy`: A float multiplied by 100 to give % of accuracy
     """
-    splits = [1.0, 0, 0]
+    splits = [0.8, 0.05, 0]
     dataset = get_dataset(wordlist_path)
     datasets = get_split_dataset(dataset, splits)
     mask_tree = get_mask_tree(wordlist_path)
     
     model = torch.load(model_path)
+    model.eval()
     acc, count = 0., 0.
     results = {word : {} for word, label in datasets[dataset_name]}
 
@@ -179,7 +182,7 @@ def accuracy_on_dataset(model_path : str, wordlist_path : str, dataset_name : st
 
         for attempt in range(6):
             output = model(features)
-            guessed_word = get_word_beam_search(output, mask_tree)
+            guessed_word = get_word_beam_search(output, mask_tree, k)
             feedback = get_feedback(guessed_word, correct_word)
             features = get_updated_features(features, feedback, guessed_word)
             
@@ -254,6 +257,20 @@ def show_guess_distribution(results : dict):
     plt.show()
     plt.close()
 
+def k_variation_beam_search(model_name : str) -> None:
+    print(model_name)
+    ks = [1, 3, 5, 10]
+    results, acc = {}, {} 
+    for k in ks:
+        results[k], acc[k] = accuracy_on_dataset(model_name, "data/official.txt", "train")
+    
+    for k in ks:
+        print(f"Accuracy for k = {k}: {acc[k]}%")
+        show_guess_distribution(results[k])
+    
+    print("")
+
+
 def print_model_statistics(model_name : str) -> None:
     """
         This is used to quickly see the statistics like interaction history and accuracy on different
@@ -283,7 +300,7 @@ def print_model_statistics(model_name : str) -> None:
     print(f"Words guessed in vocab(val): {in_vocab['val']}%")
     print(f"Words guessed in vocab(test): {in_vocab['test']}%")
     
-    show_guess_distribution(results['train'])
+    # show_guess_distribution(results['train'])
     print("")
 
 if __name__ == "__main__":
@@ -303,8 +320,16 @@ if __name__ == "__main__":
     # print_model_statistics("models/100epoch_bigger_train_beam")
     # print_model_statistics("models/100epoch_bigger_train_beam_2")
     # print_model_statistics("models/100epoch_bigger_train_beam_3")
-    print_model_statistics("models/100epoch_bigger_train_beam_4")
+    # print_model_statistics("models/100epoch_bigger_train_beam_4")
     
     # print_model_statistics("models/25epoch_biggest_train_beam")
     # print_model_statistics("models/25epoch_biggest_train_beam_2")
+
+    # k_variation_beam_search("models/100epoch_bigger_train_beam_4")
+
+    # print_model_statistics("models/25epoch_bigger_train_beam_k1")
+    # print_model_statistics("models/25epoch_bigger_train_beam_k3")
+    # print_model_statistics("models/25epoch_bigger_train_beam_k5")
+    # print_model_statistics("models/25epoch_bigger_train_beam_k10")
     
+    print_model_statistics("models/100epoch_bigger_train")
